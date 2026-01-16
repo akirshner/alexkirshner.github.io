@@ -409,13 +409,18 @@ footer {
   justify-content: center;
   font-size: 1.1rem;
   box-shadow: var(--shadow-card);
-  transition: background var(--transition-fast), transform var(--transition-fast);
+  transition: background var(--transition-fast), transform var(--transition-fast), opacity var(--transition-base);
   padding: 0;
 }
 
 .theme-toggle:hover {
   transform: scale(1.1);
   background: var(--color-bg);
+}
+
+.theme-toggle.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .theme-toggle .icon-sun,

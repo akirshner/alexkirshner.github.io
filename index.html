@@ -148,7 +148,9 @@
     </footer>
   </div>
   <script>
-    document.querySelector('.theme-toggle').addEventListener('click', function() {
+    const toggle = document.querySelector('.theme-toggle');
+
+    toggle.addEventListener('click', function() {
       const current = document.documentElement.getAttribute('data-theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
@@ -164,6 +166,15 @@
 
       document.documentElement.setAttribute('data-theme', newTheme);
       localStorage.setItem('theme', newTheme);
+    });
+
+    // Hide toggle when scrolled down
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 50) {
+        toggle.classList.add('hidden');
+      } else {
+        toggle.classList.remove('hidden');
+      }
     });
   </script>
 </body>
