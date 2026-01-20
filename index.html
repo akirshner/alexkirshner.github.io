@@ -103,25 +103,39 @@
     <section id="contact">
       <h2>Contact</h2>
       <p>Want to work with me? Have a good idea for a story? Send me a message here.</p>
-      <form class="contact-form" action="https://formsubmit.co/alex@splitzoneduo.com" method="POST">
+      <form class="contact-form" id="contact-form" action="https://formsubmit.co/alex@splitzoneduo.com" method="POST">
         <input type="hidden" name="_subject" value="New message from alexkirshner.com">
         <input type="hidden" name="_captcha" value="false">
+        <!-- Honeypot fields - bots will fill these, humans won't see them -->
         <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off">
+        <div class="form-guard" aria-hidden="true">
+          <label for="website">Website</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+        <div class="form-guard" aria-hidden="true">
+          <label for="phone_number">Phone</label>
+          <input type="tel" id="phone_number" name="phone_number" tabindex="-1" autocomplete="off">
+        </div>
+        <!-- JS challenge field - must be set by JavaScript -->
+        <input type="hidden" id="js-check" name="_gotcha" value="">
+        <!-- Timestamp for timing check -->
+        <input type="hidden" id="form-time" name="_formtime" value="">
         <div class="form-row">
           <div class="form-group">
             <label for="name">Name</label>
-            <input type="text" id="name" name="name" required>
+            <input type="text" id="name" name="name" required minlength="2" maxlength="100">
           </div>
           <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" required>
+            <input type="email" id="email" name="email" required maxlength="254">
           </div>
         </div>
         <div class="form-group">
           <label for="message">Message</label>
-          <textarea id="message" name="message" rows="5" required></textarea>
+          <textarea id="message" name="message" rows="5" required minlength="10" maxlength="5000"></textarea>
         </div>
-        <button type="submit">Send Message</button>
+        <button type="submit" id="submit-btn">Send Message</button>
+        <p id="form-error" class="form-error" role="alert"></p>
       </form>
     </section>
 
@@ -177,6 +191,132 @@
         toggle.classList.remove('hidden');
       }
     });
+
+    // --- Bot Protection for Contact Form ---
+    (function() {
+      const form = document.getElementById('contact-form');
+      const jsCheck = document.getElementById('js-check');
+      const formTime = document.getElementById('form-time');
+      const errorEl = document.getElementById('form-error');
+      const submitBtn = document.getElementById('submit-btn');
+
+      // Record when form was loaded (bots submit instantly)
+      const loadTime = Date.now();
+      formTime.value = loadTime.toString();
+
+      // Set JS challenge - proves JavaScript is running (many bots don't execute JS)
+      jsCheck.value = '';
+
+      // Spam patterns to check against
+      const spamPatterns = [
+        /\b(viagra|cialis|casino|lottery|winner|cryptocurrency|bitcoin|crypto\s*trading)\b/i,
+        /\b(click here|act now|limited time|free money|make money fast)\b/i,
+        /\b(SEO|backlink|link building|guest post|sponsored post)\b/i,
+        /<[^>]*>/,  // HTML tags
+        /\[url=/i,  // BBCode links
+        /(http[s]?:\/\/.*){3,}/i,  // Multiple URLs
+      ];
+
+      function showError(message) {
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Message';
+      }
+
+      function clearError() {
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+      }
+
+      form.addEventListener('submit', function(e) {
+        clearError();
+
+        // Check honeypot fields (bots fill hidden fields)
+        const website = document.getElementById('website').value;
+        const phone = document.getElementById('phone_number').value;
+
+        if (website || phone) {
+          e.preventDefault();
+          // Silently fail for bots - don't give them feedback
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Sending...';
+          setTimeout(function() {
+            submitBtn.textContent = 'Message Sent!';
+          }, 1500);
+          return;
+        }
+
+        // Check timing - humans take at least 3 seconds to fill a form
+        const submitTime = Date.now();
+        const elapsed = submitTime - loadTime;
+
+        if (elapsed < 3000) {
+          e.preventDefault();
+          // Silently fail for bots
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Sending...';
+          setTimeout(function() {
+            submitBtn.textContent = 'Message Sent!';
+          }, 1500);
+          return;
+        }
+
+        // Get form values
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const message = document.getElementById('message').value.trim();
+
+        // Validate name
+        if (name.length < 2) {
+          e.preventDefault();
+          showError('Please enter your name.');
+          return;
+        }
+
+        // Validate email format more strictly
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+        if (!emailRegex.test(email)) {
+          e.preventDefault();
+          showError('Please enter a valid email address.');
+          return;
+        }
+
+        // Validate message
+        if (message.length < 10) {
+          e.preventDefault();
+          showError('Please enter a message (at least 10 characters).');
+          return;
+        }
+
+        // Check for spam patterns
+        const fullContent = (name + ' ' + message).toLowerCase();
+        for (const pattern of spamPatterns) {
+          if (pattern.test(fullContent)) {
+            e.preventDefault();
+            // Silently fail for spam - don't educate spammers
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            setTimeout(function() {
+              submitBtn.textContent = 'Message Sent!';
+            }, 1500);
+            return;
+          }
+        }
+
+        // Check for excessive URLs in message (spam indicator)
+        const urlCount = (message.match(/http[s]?:\/\//gi) || []).length;
+        if (urlCount > 2) {
+          e.preventDefault();
+          showError('Please limit links in your message.');
+          return;
+        }
+
+        // All checks passed - show sending state
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+      });
+    })();
 
   </script>
   <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "215210ca1aa346b5a591f22f92af5a4d"}'></script><!-- End Cloudflare Web Analytics -->

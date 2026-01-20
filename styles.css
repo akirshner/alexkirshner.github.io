@@ -449,3 +449,45 @@ footer {
     display: inline;
   }
 }
+
+/* Honeypot fields - hidden from humans, visible to bots */
+.form-guard {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  opacity: 0;
+  height: 0;
+  width: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Form error message */
+.form-error {
+  color: #c53030;
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0 0;
+  display: none;
+}
+
+:root[data-theme="dark"] .form-error,
+:root:not([data-theme="light"]) .form-error {
+  color: #fc8181;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .form-error {
+    color: #c53030;
+  }
+}
+
+/* Submit button disabled state */
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+button:disabled:hover {
+  transform: none;
+}
